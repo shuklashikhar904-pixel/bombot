@@ -1,7 +1,7 @@
 # language: Python 3.10+, file: bombot.py
 # runtime: python bombot.py
 # render: Web Service, python 3, start command: python bombot.py
-# deps: pip install python-telegram-bot==20.7 aiohttp
+# deps: pip install python-telegram-bot==21.6 aiohttp
 
 import os
 import asyncio
@@ -20,7 +20,7 @@ from telegram.ext import (
 )
 
 # ============================================================
-# CONFIG — read from environment variables on render
+# CONFIG
 # ============================================================
 
 BOT_TOKEN = os.environ.get('BOT_TOKEN', '').strip()
@@ -44,6 +44,10 @@ ONLINE_WINDOW_MIN = 15
 ALLOW_TRANSFER = True
 BOMB_DELAY = 0.11
 BOMB_CONCURRENCY = 4
+
+# globals set in main() — used by the webhook handler
+app_bot = None
+app_instance = None
 
 # ============================================================
 # GATEWAY POOL
@@ -325,13 +329,16 @@ async def bomb_run(app, chat_id, user_id, phone, amount, mode):
     return {'sent': sent, 'ok': ok}
 
 async def check_gateway_health():
-    async with aiohttp.ClientSession() as session:
-        for g in GATEWAY_POOL:
-            alive = await fire_gateway(session, g, '9999999999')
-            cur.execute('UPDATE gateway_health SET alive = ?, last_checked = ? WHERE name = ?',
-                        (1 if alive else 0, now(), g['name']))
-            db.commit()
-    print(f'[health] {len(live_gateways())}/{len(GATEWAY_POOL)} gateways alive')
+    try:
+        async with aiohttp.ClientSession() as session:
+            for g in GATEWAY_POOL:
+                alive = await fire_gateway(session, g, '9999999999')
+                cur.execute('UPDATE gateway_health SET alive = ?, last_checked = ? WHERE name = ?',
+                            (1 if alive else 0, now(), g['name']))
+                db.commit()
+        print(f'[health] {len(live_gateways())}/{len(GATEWAY_POOL)} gateways alive')
+    except Exception as e:
+        print(f'[health error] {e}')
 
 async def check_channel_membership(bot, user_id):
     for ch in CHANNELS:
@@ -832,6 +839,16 @@ async def post_init(app: Application):
 async def health(request):
     return web.Response(text='ok')
 
+async def telegram_webhook(request):
+    try:
+        data = await request.json()
+        update = Update.de_json(data, app_bot)
+        await app_instance.update_queue.put(update)
+        return web.Response(text='ok')
+    except Exception as e:
+        print(f'[webhook error] {e}')
+        return web.Response(text='error', status=500)
+
 async def health_loop(app):
     while True:
         await asyncio.sleep(1800)
@@ -841,11 +858,15 @@ async def health_loop(app):
             print(f'[health error] {e}')
 
 async def main():
+    global app_bot, app_instance
     logging.basicConfig(level=logging.WARNING)
     print('🚀 starting bot (webhook mode)...')
     print(f'[config] RENDER_URL={RENDER_URL or "unset"} PORT={PORT} OWNER_ID={OWNER_ID}')
 
     app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    app_bot = app.bot
+    app_instance = app
+
     app.add_handler(CommandHandler('start', cmd_start))
     app.add_handler(CallbackQueryHandler(on_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_message))
@@ -858,12 +879,12 @@ async def main():
         await app.bot.set_webhook(webhook_url)
         print(f'[webhook] set: {webhook_url}')
     else:
-        print('[webhook] RENDER_URL not set — webhook will not be registered. set env var.')
+        print('[webhook] RENDER_URL not set — set env var.')
         return
 
     web_app = web.Application()
     web_app.router.add_get('/', health)
-    web_app.router.add_post(f'/{BOT_TOKEN}', app.update_queue.put)
+    web_app.router.add_post(f'/{BOT_TOKEN}', telegram_webhook)
 
     runner = web.AppRunner(web_app)
     await runner.setup()
