@@ -1,4 +1,4 @@
-# language: Python 3.10+, file: bombot.py
+1# language: Python 3.10+, file: bombot.py
 # runtime: python bombot.py
 # render: Web Service, python 3, start command: python bombot.py
 # deps: pip install python-telegram-bot==21.6 aiohttp
